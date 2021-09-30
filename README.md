@@ -12,6 +12,3 @@ Macros to generate `Color { r:f32, g:f32, b:f32, a:f32 }` structs based on an h
 This crate is a modified version of https://github.com/RustCrypto/utils/tree/master/hex-literal
 
 Plays well with iced https://github.com/iced-rs 
-
-If the Iced Color struct definition is in scope (https://github.com/iced-rs/iced/blob/master/core/src/color.rs),
-you don't have to define the Color struct !!
