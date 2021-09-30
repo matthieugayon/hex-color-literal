@@ -3,6 +3,9 @@ use iced_native::Color;
 
 #[test]
 fn test_macro(){
-    const white: Color = hex!("00ffff");
-    println!("{:?}", white);
+    const WHITE: Color = hex!("#000");
+    println!("{:?}", WHITE);
+
+    const RED_PALETTE: [Color; 101] = palette_light_101!("#f00");
+    println!("{:?}", RED_PALETTE);
 }

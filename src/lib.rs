@@ -2,8 +2,26 @@ extern crate proc_macro;
 
 use core::panic;
 use std::vec::IntoIter;
-use quote::quote;
+use quote::{ToTokens, quote};
+use palette::{LinSrgb, Shade};
 use proc_macro::{Delimiter, Literal, TokenStream, TokenTree};
+
+struct Color {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32
+}
+
+impl ToTokens for Color {
+    fn to_tokens(&self, tokens: &mut quote::__rt::TokenStream) {
+        let r = self.r;
+        let g = self.g;
+        let b = self.b;
+
+        tokens.extend(quote! { Color { r: #r, g: #g, b: #b, a: 1. } })
+    }
+}
 
 fn ignore_groups(mut input: TokenStream) -> TokenStream {
     let mut tokens = input.clone().into_iter();
@@ -25,7 +43,8 @@ struct TokenTreeIter {
 
 impl TokenTreeIter {
     fn new(input: Literal) -> Self {
-        let mut buf: Vec<u8> = input.to_string().into();
+        let hex_hash_symbol_free = input.to_string().replace("#", "").to_lowercase();
+        let mut buf: Vec<u8> = hex_hash_symbol_free.into();
 
         match buf.as_slice() {
             [b'"', .., b'"'] => (),
@@ -35,6 +54,19 @@ impl TokenTreeIter {
         // remove " char
         buf.pop();
         buf.remove(0);
+
+        println!("buf.len() {:?}", buf.len());
+
+        let length = buf.len();
+
+        if length == 3 {
+            buf = buf.into_iter()
+                .map(|item| vec![item, item])
+                .flatten()
+                .collect()
+        } else if length != 6 {
+            panic!("hexadecimal color string has 3 or 6 characters");
+        }
 
         Self {
             buf: buf.into_iter(),
@@ -80,8 +112,8 @@ impl Iterator for TokenTreeIter {
     }
 }
 
-/// Macro for converting sequence an hexadecimal color string 
-/// into a Color { r: f32, g: f32, b: f32 }
+/// Macro for converting an hexadecimal color string 
+/// into a Color { r: f32, g: f32, b: f32, a: f32 }
 #[proc_macro]
 pub fn hex(input: TokenStream) -> TokenStream {
     let mut out_ts: Option<TokenTreeIter> = None;
@@ -106,6 +138,78 @@ pub fn hex(input: TokenStream) -> TokenStream {
 
     let tokens = quote! {
         Color { r: #r, g: #g, b: #b, a: 1. }
+    };
+
+    tokens.into()
+}
+
+/// Macro for generating an array of 101 darkening shades of iced Colors
+/// from an hexadecimal color string 
+#[proc_macro]
+pub fn palette_dark_101(input: TokenStream) -> TokenStream {
+    let mut out_ts: Option<TokenTreeIter> = None;
+
+    for tt in ignore_groups(input) {
+        let iter = match tt {
+            TokenTree::Literal(literal) => TokenTreeIter::new(literal),
+            _ => panic!("expected string literals"),
+        };
+        out_ts = Some(iter);
+    }
+
+    let res: Vec<f32> = out_ts.unwrap()
+        .into_iter()
+        .filter(|val| val.is_some())
+        .map(|val| val.unwrap())
+        .collect();
+
+    let srgb_color = LinSrgb::new(res[0], res[1], res[2]);
+    let shades: Vec<Color> = (0..=100)
+        .into_iter()
+        .map(|index| {
+            let rgb_shade = srgb_color.darken(index as f32 / 100.);
+            Color { r: rgb_shade.red, g: rgb_shade.green, b: rgb_shade.blue, a: 1. }
+        })
+        .collect();
+
+    let tokens = quote! {
+        [#(#shades),*]
+    };
+
+    tokens.into()
+}
+
+/// Macro for generating an array of 101 lightening shades of iced Colors
+/// from an hexadecimal color string 
+#[proc_macro]
+pub fn palette_light_101(input: TokenStream) -> TokenStream {
+    let mut out_ts: Option<TokenTreeIter> = None;
+
+    for tt in ignore_groups(input) {
+        let iter = match tt {
+            TokenTree::Literal(literal) => TokenTreeIter::new(literal),
+            _ => panic!("expected string literals"),
+        };
+        out_ts = Some(iter);
+    }
+
+    let res: Vec<f32> = out_ts.unwrap()
+        .into_iter()
+        .filter(|val| val.is_some())
+        .map(|val| val.unwrap())
+        .collect();
+
+    let srgb_color = LinSrgb::new(res[0], res[1], res[2]);
+    let shades: Vec<Color> = (0..=100)
+        .into_iter()
+        .map(|index| {
+            let rgb_shade = srgb_color.lighten(index as f32 / 100.);
+            Color { r: rgb_shade.red, g: rgb_shade.green, b: rgb_shade.blue, a: 1. }
+        })
+        .collect();
+
+    let tokens = quote! {
+        [#(#shades),*]
     };
 
     tokens.into()
