@@ -1,5 +1,5 @@
 [package]
-name = "hex-color"
+name = "hex"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,6 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
+syn = "0.15.44"
+quote = "0.6.13"
 iced_native = { git = "https://github.com/iced-rs/iced", rev = "35c4ad6" }
