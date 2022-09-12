@@ -3,7 +3,6 @@ extern crate proc_macro;
 use core::panic;
 use std::vec::IntoIter;
 use quote::{ToTokens, quote};
-use palette::{LinSrgb, Shade};
 use proc_macro::{Delimiter, Literal, TokenStream, TokenTree};
 
 struct Color {
@@ -105,7 +104,7 @@ impl Iterator for TokenTreeIter {
             let val = (p1 << 4) + p2;
             Some(Some(val as f32 / 255.))
         };
-        
+
         self.is_punct = !self.is_punct;
 
         v
@@ -138,78 +137,6 @@ pub fn hex(input: TokenStream) -> TokenStream {
 
     let tokens = quote! {
         Color { r: #r, g: #g, b: #b, a: 1. }
-    };
-
-    tokens.into()
-}
-
-/// Macro for generating an array of 101 darkening shades of iced Colors
-/// from an hexadecimal color string 
-#[proc_macro]
-pub fn palette_dark_101(input: TokenStream) -> TokenStream {
-    let mut out_ts: Option<TokenTreeIter> = None;
-
-    for tt in ignore_groups(input) {
-        let iter = match tt {
-            TokenTree::Literal(literal) => TokenTreeIter::new(literal),
-            _ => panic!("expected string literals"),
-        };
-        out_ts = Some(iter);
-    }
-
-    let res: Vec<f32> = out_ts.unwrap()
-        .into_iter()
-        .filter(|val| val.is_some())
-        .map(|val| val.unwrap())
-        .collect();
-
-    let srgb_color = LinSrgb::new(res[0], res[1], res[2]);
-    let shades: Vec<Color> = (0..=100)
-        .into_iter()
-        .map(|index| {
-            let rgb_shade = srgb_color.darken(index as f32 / 100.);
-            Color { r: rgb_shade.red, g: rgb_shade.green, b: rgb_shade.blue, a: 1. }
-        })
-        .collect();
-
-    let tokens = quote! {
-        [#(#shades),*]
-    };
-
-    tokens.into()
-}
-
-/// Macro for generating an array of 101 lightening shades of iced Colors
-/// from an hexadecimal color string 
-#[proc_macro]
-pub fn palette_light_101(input: TokenStream) -> TokenStream {
-    let mut out_ts: Option<TokenTreeIter> = None;
-
-    for tt in ignore_groups(input) {
-        let iter = match tt {
-            TokenTree::Literal(literal) => TokenTreeIter::new(literal),
-            _ => panic!("expected string literals"),
-        };
-        out_ts = Some(iter);
-    }
-
-    let res: Vec<f32> = out_ts.unwrap()
-        .into_iter()
-        .filter(|val| val.is_some())
-        .map(|val| val.unwrap())
-        .collect();
-
-    let srgb_color = LinSrgb::new(res[0], res[1], res[2]);
-    let shades: Vec<Color> = (0..=100)
-        .into_iter()
-        .map(|index| {
-            let rgb_shade = srgb_color.lighten(index as f32 / 100.);
-            Color { r: rgb_shade.red, g: rgb_shade.green, b: rgb_shade.blue, a: 1. }
-        })
-        .collect();
-
-    let tokens = quote! {
-        [#(#shades),*]
     };
 
     tokens.into()
