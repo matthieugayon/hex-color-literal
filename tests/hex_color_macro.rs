@@ -1,5 +1,5 @@
 use hex::*;
-use iced_native::Color;
+use iced_core::Color;
 
 #[test]
 fn test_macro(){
